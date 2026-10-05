@@ -11,6 +11,7 @@ Thumbs.db
 # Ortam / yerel ayarlar
 .env
 .env.*
+!.env.example
 docker-compose.override.yml
 
 # Claude Code yerel ayarları

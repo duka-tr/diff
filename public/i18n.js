@@ -96,6 +96,6 @@ window.I18N = {
 
 // Tema, sayfa çizilmeden önce uygulanır (yanıp sönmeyi önlemek için).
 try {
-  const th = localStorage.getItem('dc.theme');
+  const th = localStorage.getItem('dc.theme') || (window.APP_CONFIG || {}).theme;
   if (th === 'light' || th === 'dark') document.documentElement.dataset.theme = th;
 } catch (_) { /* depolama kapalı olabilir */ }

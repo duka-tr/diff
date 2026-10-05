@@ -6,7 +6,17 @@ services:
     restart: unless-stopped
     # Yalnızca makinenin içinden erişilebilir; dışarıya Cloudflare Tunnel ile açılır.
     ports:
-      - "127.0.0.1:7080:8080"
+      - "${BIND_ADDRESS:-127.0.0.1}:${HOST_PORT:-7080}:8080"
+    # Site ayarları .env dosyasından okunur (bkz. .env.example).
+    environment:
+      SITE_TITLE: ${SITE_TITLE:-}
+      SITE_TAGLINE: ${SITE_TAGLINE:-}
+      SITE_FOOTER: ${SITE_FOOTER:-}
+      DEFAULT_LANG: ${DEFAULT_LANG:-}
+      DEFAULT_THEME: ${DEFAULT_THEME:-}
+      DEFAULT_VIEW: ${DEFAULT_VIEW:-}
+      DEFAULT_HIDE_UNCHANGED: ${DEFAULT_HIDE_UNCHANGED:-}
+      DEFAULT_CONTEXT: ${DEFAULT_CONTEXT:-}
     read_only: true
     tmpfs:
       - /tmp

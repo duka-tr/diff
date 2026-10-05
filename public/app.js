@@ -5,16 +5,21 @@
 
   /* ---------- Ayarlar (yalnızca tercihler; metinler asla saklanmaz) ---------- */
   const PREF_KEY = 'dc.prefs';
+  // Sunucu ayarları (.env → config.js). Dosya yoksa varsayılanlar kullanılır.
+  const CFG = window.APP_CONFIG || {};
   const defaults = {
     lang: 'tr', whitespace: 'none', ignoreCase: false, turkishCase: false, ignoreBlank: false,
     inline: 'word', view: 'split', hide: false, context: 5,
   };
+  for (const k of ['lang', 'view', 'hide', 'context']) if (CFG[k] !== undefined) defaults[k] = CFG[k];
+  // Kullanıcının kendi seçtiği tercihler, sunucu varsayılanlarından önceliklidir.
   let prefs = { ...defaults };
   try { Object.assign(prefs, JSON.parse(localStorage.getItem(PREF_KEY) || '{}')); } catch (_) {}
   const savePrefs = () => { try { localStorage.setItem(PREF_KEY, JSON.stringify(prefs)); } catch (_) {} };
 
   /* ---------- Dil ---------- */
   function t(key, vars) {
+    if ((key === 'title' || key === 'tagline' || key === 'footer') && CFG[key]) return CFG[key];
     const dict = I18N[prefs.lang] || I18N.tr;
     let s = dict[key] ?? I18N.tr[key] ?? key;
     if (vars) for (const k in vars) s = s.replace('{' + k + '}', vars[k]);
