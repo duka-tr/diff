@@ -1,0 +1,17 @@
+# Bağımlılıklar / araçlar
+node_modules/
+
+# Editör ve sistem dosyaları
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Ortam / yerel ayarlar
+.env
+.env.*
+docker-compose.override.yml
+
+# Claude Code yerel ayarları
+.claude/settings.local.json
