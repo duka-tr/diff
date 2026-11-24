@@ -149,10 +149,16 @@ tests/               Diff engine and JSON normalization tests
 
 Translations are welcome as pull requests.
 
+## Support and contact
+
+- Report problems and ideas in [Issues](https://github.com/duka-tr/diff/issues).
+- Contact: [support@duka.tr](mailto:support@duka.tr)
+- Starring the repository helps others find the project.
+
 ## Contributing
 
-Bug reports and ideas: [open an issue](https://github.com/duka-tr/diff/issues). Pull requests are welcome; please
-keep the project dependency-free and run the tests before submitting.
+Pull requests are welcome, including translations. Please keep the project dependency-free and run the tests
+before submitting.
 
 ## License
 
