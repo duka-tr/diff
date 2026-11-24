@@ -158,8 +158,17 @@ Translations are welcome as pull requests.
 
 ## Contributing
 
-Pull requests are welcome, including translations. See [CONTRIBUTING.md](CONTRIBUTING.md) for the ground rules.
-Please report security issues privately as described in [SECURITY.md](SECURITY.md).
+Pull requests are welcome, including translations. Please read the duka.tr
+[contributing guidelines](https://github.com/duka-tr/.github/blob/main/CONTRIBUTING.md) first, and report security
+issues privately as described in the [security policy](https://github.com/duka-tr/.github/blob/main/SECURITY.md).
+
+Specific to this project:
+
+- No build step: the site is plain HTML, CSS and JavaScript served as-is from `public/`.
+- The page must keep working under its Content Security Policy (`connect-src 'none'`), with no external scripts,
+  fonts or CDNs.
+- The compared text is never stored; only preferences may go to `localStorage`.
+- Changes to the diff engine or JSON/XML normalization come with tests.
 
 ## License
 
