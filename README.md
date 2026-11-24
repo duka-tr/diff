@@ -1,4 +1,4 @@
-# Metin Karşılaştırma
+# DUKA Diff
 
 Sade, log tutmayan bir metin karşılaştırma (diff) aracı.
 
@@ -56,6 +56,11 @@ Güncelleme: dosyaları değiştirdikten sonra `docker compose up -d --build` ko
 ## Özellikler
 
 - Yan yana / tek sütun görünüm
+- Biçim: düz metin, JSON veya XML
+  - JSON: anahtar sırası ve girinti farkları yok sayılır, yalnızca veri farkları görünür. Dizi sırası ve sayıların
+    yazımı korunur (büyük sayılar yuvarlanmaz, `1.50` ≠ `1.5`)
+  - XML: öznitelik sırası ve girinti/boşluk farkları yok sayılır, element sırası korunur
+  - Geçersiz girdide hangi tarafta, hangi satır/sütunda hata olduğu gösterilir
 - Satır içi fark vurgusu: kelime, karakter ya da kapalı
 - Yok sayma seçenekleri: baştaki/sondaki boşluklar veya tüm boşluklar, büyük/küçük harf, boş satırlar
 - Türkçe harf kuralları (büyük/küçük harf yok sayılırken): açıkken I↔ı, İ↔i (`SATIR` = `satır`, `kır` ≠ `kir`);
@@ -76,13 +81,14 @@ public/            Statik site (derleme adımı yok, bağımlılık yok)
   worker.js        Karşılaştırmayı arka planda çalıştırır
   app.js           Arayüz
   i18n.js          TR/EN metinleri
+  format.js        JSON/XML normalleştirme
   index.html       Sayfa
   style.css        Stiller (açık/koyu tema)
   favicon.svg      Simge
   config.js        (konteynerde .env'den üretilir, repoda yok)
 nginx/default.conf Güvenlik başlıkları, log kapalı, yalnızca GET/HEAD
 docker/            Açılışta .env'den config.js üreten betik
-tests/             Diff motoru testleri
+tests/             Diff motoru ve JSON biçimlendirme testleri
 Dockerfile         nginx-unprivileged (alpine) imajı
 docker-compose.yml Port/ayarlar .env'den, salt okunur, yetkisiz konteyner
 .env.example       Ayar şablonu

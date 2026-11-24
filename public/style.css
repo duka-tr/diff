@@ -197,6 +197,8 @@ button, select, input, textarea { font: inherit; color: inherit; }
 .stats .add { color: #1a7f37; }
 .stats .blk, .stats .ms { color: var(--muted); font-weight: 500; }
 .stats .same { color: var(--muted); }
+.stats .fmt-note { color: var(--muted); font-weight: 400; font-size: 12.5px; }
+.diff-wrap .msg.error { color: #d1242f; }
 :root[data-theme="dark"] .stats .rem { color: #ff7b7b; }
 :root[data-theme="dark"] .stats .add { color: #56d47f; }
 @media (prefers-color-scheme: dark) {

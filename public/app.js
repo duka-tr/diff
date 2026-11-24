@@ -8,7 +8,7 @@
   // Sunucu ayarları (.env → config.js). Dosya yoksa varsayılanlar kullanılır.
   const CFG = window.APP_CONFIG || {};
   const defaults = {
-    lang: 'tr', whitespace: 'none', ignoreCase: false, turkishCase: false, ignoreBlank: false,
+    lang: 'tr', format: 'text', whitespace: 'none', ignoreCase: false, turkishCase: false, ignoreBlank: false,
     inline: 'word', view: 'split', hide: false, context: 5,
   };
   for (const k of ['lang', 'view', 'hide', 'context']) if (CFG[k] !== undefined) defaults[k] = CFG[k];
@@ -41,6 +41,7 @@
   /* ---------- Elemanlar ---------- */
   const leftEl = $('#leftText'), rightEl = $('#rightText');
   const resultEl = $('#result'), wrapEl = $('#diffWrap');
+  const optFormat = $('#optFormat');
   const optWs = $('#optWhitespace'), optCase = $('#optCase'), optTurkish = $('#optTurkish'), optBlank = $('#optBlank');
   const optInline = $('#optInline'), optHide = $('#optHide'), optContext = $('#optContext');
 
@@ -62,6 +63,7 @@
       wrapEl.innerHTML = `<div class="msg">${esc(t('error', { msg: error }))}</div>`;
       return;
     }
+    result.format = state.reqFormat;
     state.result = result;
     state.expanded.clear();
     state.current = -1;
@@ -80,8 +82,9 @@
   }
 
   function runCompare(scroll) {
-    const left = leftEl.value, right = rightEl.value;
+    let left = leftEl.value, right = rightEl.value;
     resultEl.hidden = false;
+    state.ran = true;
     if (left === '' && right === '') {
       state.result = null;
       $('#stats').innerHTML = '';
@@ -89,6 +92,28 @@
       updateNav();
       return;
     }
+    const format = prefs.format;
+    if (format !== 'text') {
+      const fmtName = format.toUpperCase();
+      let side = 'left';
+      try {
+        left = Formatter.normalize(left, format);
+        side = 'right';
+        right = Formatter.normalize(right, format);
+      } catch (err) {
+        state.reqId++; // bekleyen bir sonucu geçersiz kıl
+        state.result = null;
+        $('#stats').innerHTML = '';
+        setStale(false);
+        const pos = err.line ? t('formatPos', { line: err.line, col: err.col }) : '';
+        const sideName = t(side === 'left' ? 'left' : 'right');
+        wrapEl.innerHTML = `<div class="msg error">${esc(t('formatError', { side: prefs.lang === 'tr' ? sideName : sideName.toLowerCase(), fmt: fmtName, pos }))}</div>`;
+        updateNav();
+        if (scroll) resultEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return;
+      }
+    }
+    state.reqFormat = format;
     const id = ++state.reqId;
     if (!state.result) wrapEl.innerHTML = `<div class="msg">${esc(t('computing'))}</div>`;
     worker.postMessage({ id, left, right, opts: currentOpts() });
@@ -192,14 +217,18 @@
     const s = res.stats;
     const el = $('#stats');
     if (s.blocks === 0) {
-      const ignoring = prefs.whitespace !== 'none' || prefs.ignoreCase || prefs.ignoreBlank;
+      const ignoring = res.format !== 'text' || prefs.whitespace !== 'none' || prefs.ignoreCase || prefs.ignoreBlank;
       el.innerHTML = `<span class="same">${esc(t(ignoring ? 'identicalIgnored' : 'identical'))}</span>`;
-      return;
+    } else {
+      el.innerHTML =
+        `<span class="rem">−${esc(t('statRemoved', { n: fmt(s.removed) }))}</span>` +
+        `<span class="add">+${esc(t('statAdded', { n: fmt(s.added) }))}</span>` +
+        `<span class="blk">${esc(t('statBlocks', { n: fmt(s.blocks) }))}</span>`;
     }
-    el.innerHTML =
-      `<span class="rem">−${esc(t('statRemoved', { n: fmt(s.removed) }))}</span>` +
-      `<span class="add">+${esc(t('statAdded', { n: fmt(s.added) }))}</span>` +
-      `<span class="blk">${esc(t('statBlocks', { n: fmt(s.blocks) }))}</span>`;
+    if (res.format !== 'text') {
+      const f = res.format.toUpperCase();
+      el.innerHTML += `<span class="fmt-note" title="${esc(t('fmtNoteHint', { fmt: f }))}">${esc(t('fmtNote', { fmt: f }))} ⓘ</span>`;
+    }
   }
 
   function render() {
@@ -275,6 +304,7 @@
   }
 
   function syncControls() {
+    optFormat.value = prefs.format;
     optWs.value = prefs.whitespace;
     optCase.checked = prefs.ignoreCase;
     optTurkish.checked = prefs.turkishCase;
@@ -357,8 +387,9 @@
     prefs[key] = value;
     savePrefs();
     syncControls();
-    if (state.result) runCompare(false);
+    if (state.ran) runCompare(false);
   }
+  optFormat.addEventListener('change', () => onCompareOpt('format', optFormat.value));
   optWs.addEventListener('change', () => onCompareOpt('whitespace', optWs.value));
   optCase.addEventListener('change', () => onCompareOpt('ignoreCase', optCase.checked));
   optTurkish.addEventListener('change', () => onCompareOpt('turkishCase', optTurkish.checked));

@@ -123,3 +123,29 @@ test('performans: 10k satır', () => {
   D.compare(left.join('\n'), rnd.join('\n'), base);
   console.log(`  10k tamamen farklı: ${Date.now() - t1}ms`);
 });
+
+const F = require('../public/format.js');
+
+test('formatJSON: anahtar sırası ve girinti yok sayılır', () => {
+  const a = F.formatJSON('{"b": 1, "a": {"y": [1, 2], "x": "ç"}}');
+  const b = F.formatJSON('{\n  "a": {"x": "\\u00e7", "y": [1,2]},\n  "b": 1\n}');
+  assert.strictEqual(a, b);
+  assert.strictEqual(a, '{\n  "a": {\n    "x": "ç",\n    "y": [\n      1,\n      2\n    ]\n  },\n  "b": 1\n}');
+});
+
+test('formatJSON: dizi sırası ve sayı yazımı korunur', () => {
+  assert.notStrictEqual(F.formatJSON('[1, 2]'), F.formatJSON('[2, 1]'));
+  // JSON.parse bu iki sayıyı aynı yapar; biz yapmamalıyız
+  assert.notStrictEqual(F.formatJSON('{"id": 12345678901234567890}'), F.formatJSON('{"id": 12345678901234567891}'));
+  assert.strictEqual(F.formatJSON('{"n": 1.50}'), '{\n  "n": 1.50\n}');
+  assert.strictEqual(F.formatJSON('  '), '');
+  assert.strictEqual(F.formatJSON('{}'), '{}');
+  assert.strictEqual(F.formatJSON('﻿[]'), '[]');
+});
+
+test('formatJSON: hatalı JSON konum bilgisiyle reddedilir', () => {
+  for (const bad of ['{"a": 1,}', '{"a" 1}', '[1, 2', '{"a": tru}', '{"a": "x\ny"}', '01', '{} x']) {
+    assert.throws(() => F.formatJSON(bad), e => e.code === 'json' && e.line >= 1 && e.col >= 1, bad);
+  }
+  try { F.formatJSON('{\n  "a": 1,\n  "b": ?\n}'); } catch (e) { assert.deepStrictEqual([e.line, e.col], [3, 8]); }
+});
