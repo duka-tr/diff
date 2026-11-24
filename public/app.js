@@ -5,7 +5,7 @@
 
   /* ---------- Ayarlar (yalnızca tercihler; metinler asla saklanmaz) ---------- */
   const PREF_KEY = 'dc.prefs';
-  // Sunucu ayarları (.env → config.js). Dosya yoksa varsayılanlar kullanılır.
+  // Site ayarları (config.js). Dosya yoksa varsayılanlar kullanılır.
   const CFG = window.APP_CONFIG || {};
   const defaults = {
     lang: 'tr', format: 'text', whitespace: 'none', ignoreCase: false, turkishCase: false, ignoreBlank: false,
@@ -55,7 +55,7 @@
   };
 
   /* ---------- Worker ---------- */
-  const worker = new Worker('worker.js');
+  const worker = new Worker('worker.js?v=__V__');
   worker.onmessage = (e) => {
     const { id, result, error } = e.data;
     if (id !== state.reqId) return; // eski istek

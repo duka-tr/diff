@@ -2,14 +2,17 @@
 <html lang="tr">
 <head>
   <meta charset="utf-8">
+  <!-- Sayfa hiçbir dış kaynağa bağlanamaz; metinlerin dışarı sızması tarayıcı düzeyinde engellenir. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; worker-src 'self'; connect-src 'none'; form-action 'none'; base-uri 'none'">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="referrer" content="no-referrer">
-  <meta name="robots" content="noindex">
+  <meta name="description" content="Metinleri, JSON ve XML'i tarayıcıda karşılaştırın. Hiçbir şey sunucuya gönderilmez.">
+  <link rel="canonical" href="https://duka.tr/diff/">
   <title>DUKA Diff</title>
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="style.css">
-  <script src="config.js"></script>
-  <script src="i18n.js"></script>
+  <link rel="stylesheet" href="style.css?v=__V__">
+  <script src="config.js?v=__V__"></script>
+  <script src="i18n.js?v=__V__"></script>
 </head>
 <body>
   <header class="topbar">
@@ -117,7 +120,7 @@
 
   <footer class="footer" data-i18n="footer"></footer>
 
-  <script src="format.js"></script>
-  <script src="app.js"></script>
+  <script src="format.js?v=__V__"></script>
+  <script src="app.js?v=__V__"></script>
 </body>
 </html>

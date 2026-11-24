@@ -8,11 +8,8 @@ node_modules/
 .DS_Store
 Thumbs.db
 
-# Ortam / yerel ayarlar
-.env
-.env.*
-!.env.example
-docker-compose.override.yml
+# Yayın çıktısı
+_site/
 
 # Claude Code yerel ayarları
 .claude/settings.local.json

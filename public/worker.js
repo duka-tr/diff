@@ -1,5 +1,5 @@
 'use strict';
-importScripts('diff.js');
+importScripts('diff.js?v=__V__');
 
 self.onmessage = (e) => {
   const { id, left, right, opts } = e.data;

@@ -1,57 +1,45 @@
 # DUKA Diff
 
-Sade, log tutmayan bir metin karşılaştırma (diff) aracı.
+Sade, metinleri hiçbir yere göndermeyen bir metin karşılaştırma (diff) aracı.
+
+Adres: **https://duka.tr/diff/**
 
 **Gizlilik:** Karşılaştırma tamamen tarayıcıda (Web Worker içinde) yapılır. Metinler sunucuya hiç gönderilmez.
-Sunucu yalnızca statik dosyaları verir. Erişim kaydı tutmaz ve çerez kullanmaz. CSP (`connect-src 'none'`)
+Site GitHub Pages üzerinde yalnızca statik dosyalardan oluşur ve çerez kullanmaz. CSP (`connect-src 'none'`)
 sayfanın hiçbir yere ağ isteği yapmasına izin vermez. Tarayıcıda yalnızca tercihler saklanır (dil, tema, seçenekler),
-metinler saklanmaz.
+metinler saklanmaz. Not: GitHub Pages, her web sunucusu gibi kendi erişim kayıtlarını (IP vb.) tutar.
+Metin içerikleri bu kayıtlara girmez, çünkü hiç gönderilmez.
 
-## Gereksinimler
+## Yayın
 
-- Docker ve Docker Compose v2
+`main` dalına her push'ta [.github/workflows/pages.yml](.github/workflows/pages.yml) testleri çalıştırır,
+`public/` klasörünü GitHub Pages'e yayınlar. Repo `duka-tr` organizasyonunda olduğu için site,
+organizasyonun alan adı altında `duka.tr/diff/` adresinde açılır.
 
-## Çalıştırma
+Yayın sırasında dosya adreslerindeki `__V__` ifadesi commit kimliğiyle değiştirilir. Böylece güncellemeden sonra
+tarayıcılar eski dosyaları önbellekten kullanmaz.
+
+Yerelde denemek için herhangi bir statik sunucu yeterlidir:
 
 ```bash
-cp .env.example .env      # ilk kurulumda; ayarları bu dosyadan düzenleyin
-docker compose up -d --build
+cd public && python3 -m http.server 8000
 ```
 
-Uygulama `http://127.0.0.1:7080` adresinde açılır. Port yalnızca makinenin içinden erişilebilir.
-Dışarıya Cloudflare Tunnel ile açmak için tünelin servisini `http://127.0.0.1:7080` olarak ayarlayın.
-Örneğin `cloudflared` yapılandırmasında:
+## Ayarlar (`public/config.js`)
 
-```yaml
-ingress:
-  - hostname: diff.ornek.com
-    service: http://127.0.0.1:7080
-  - service: http_status:404
-```
-
-## Ayarlar (`.env`)
-
-Tüm ayarlar `.env` dosyasındadır, açıklamalı örnek için [.env.example](.env.example) dosyasına bakın.
-`.env` git'e eklenmez. Değişiklikten sonra `docker compose up -d` yeterlidir, imajı yeniden derlemek gerekmez.
-
-| Değişken | Varsayılan | Açıklama |
+| Alan | Varsayılan | Açıklama |
 |---|---|---|
-| `BIND_ADDRESS` | `127.0.0.1` | Bağlanılacak adres (`127.0.0.1` = yalnızca bu makine) |
-| `HOST_PORT` | `7080` | Dışarıya açılan port |
-| `SITE_TITLE` | dile göre | Sekme ve sayfa başlığı |
-| `SITE_TAGLINE` | dile göre | Başlık yanındaki açıklama |
-| `SITE_FOOTER` | dile göre | Sayfa altı metni |
-| `DEFAULT_LANG` | `tr` | `tr` veya `en` |
-| `DEFAULT_THEME` | `auto` | `auto`, `light` veya `dark` |
-| `DEFAULT_VIEW` | `split` | `split` (yan yana) veya `unified` (tek sütun) |
-| `DEFAULT_HIDE_UNCHANGED` | `false` | Değişmeyenleri gizle |
-| `DEFAULT_CONTEXT` | `5` | Bağlam satırı: `0`, `3`, `5`, `10`, `20` |
+| `title` | `DUKA Diff` | Sekme ve sayfa başlığı |
+| `tagline` | dile göre | Başlık yanındaki açıklama |
+| `footer` | dile göre | Sayfa altı metni |
+| `lang` | `tr` | `tr` veya `en` |
+| `theme` | sistem ayarı | `light` veya `dark` |
+| `view` | `split` | `split` (yan yana) veya `unified` (tek sütun) |
+| `hide` | `false` | Değişmeyenleri gizle |
+| `context` | `5` | Bağlam satırı: `0`, `3`, `5`, `10`, `20` |
 
-`DEFAULT_*` değerleri ilk ziyaretteki varsayılanlardır. Ziyaretçi sayfada kendisi bir seçim yaptıysa,
-tarayıcısında saklanan bu seçim önceliklidir. Geçersiz bir değer girilirse konteyner log'una uyarı yazılır ve
-uygulama varsayılanı kullanılır (`docker logs difference-checker`).
-
-Güncelleme: dosyaları değiştirdikten sonra `docker compose up -d --build` komutunu tekrar çalıştırın.
+Bunlar ilk ziyaretteki varsayılanlardır. Ziyaretçi sayfada kendisi bir seçim yaptıysa, tarayıcısında saklanan
+bu seçim önceliklidir.
 
 ## Özellikler
 
@@ -85,13 +73,9 @@ public/            Statik site (derleme adımı yok, bağımlılık yok)
   index.html       Sayfa
   style.css        Stiller (açık/koyu tema)
   favicon.svg      Simge
-  config.js        (konteynerde .env'den üretilir, repoda yok)
-nginx/default.conf Güvenlik başlıkları, log kapalı, yalnızca GET/HEAD
-docker/            Açılışta .env'den config.js üreten betik
+  config.js        Site ayarları
 tests/             Diff motoru ve JSON biçimlendirme testleri
-Dockerfile         nginx-unprivileged (alpine) imajı
-docker-compose.yml Port/ayarlar .env'den, salt okunur, yetkisiz konteyner
-.env.example       Ayar şablonu
+.github/workflows/ GitHub Pages yayını
 ```
 
 ## Test

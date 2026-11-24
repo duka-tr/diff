@@ -51,7 +51,7 @@ window.I18N = {
     theme: 'Tema değiştir',
     fileError: 'Dosya okunamadı.',
     shortcutHint: 'Ctrl+Enter ile karşılaştır',
-    footer: 'Kayıt tutulmaz · Çerez yok · Analitik yok',
+    footer: 'Metinler saklanmaz · Çerez yok · Analitik yok',
   },
   en: {
     title: 'DUKA Diff',
@@ -104,7 +104,7 @@ window.I18N = {
     theme: 'Toggle theme',
     fileError: 'Could not read the file.',
     shortcutHint: 'Ctrl+Enter to compare',
-    footer: 'No logs · No cookies · No analytics',
+    footer: 'Text is never stored · No cookies · No analytics',
   },
 };
 
