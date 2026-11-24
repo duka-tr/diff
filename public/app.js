@@ -3,29 +3,76 @@
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
 
-  /* ---------- Ayarlar (yalnızca tercihler; metinler asla saklanmaz) ---------- */
+  /* ---------- Settings (preferences only; texts are never stored) ---------- */
   const PREF_KEY = 'dc.prefs';
-  // Site ayarları (config.js). Dosya yoksa varsayılanlar kullanılır.
+  const THEME_KEY = 'dc.theme';
   const CFG = window.APP_CONFIG || {};
-  const defaults = {
-    lang: 'tr', format: 'text', whitespace: 'none', ignoreCase: false, turkishCase: false, ignoreBlank: false,
-    inline: 'word', view: 'split', hide: false, context: 5,
-  };
-  for (const k of ['lang', 'view', 'hide', 'context']) if (CFG[k] !== undefined) defaults[k] = CFG[k];
-  // Kullanıcının kendi seçtiği tercihler, sunucu varsayılanlarından önceliklidir.
-  let prefs = { ...defaults };
-  try { Object.assign(prefs, JSON.parse(localStorage.getItem(PREF_KEY) || '{}')); } catch (_) {}
-  const savePrefs = () => { try { localStorage.setItem(PREF_KEY, JSON.stringify(prefs)); } catch (_) {} };
+  const LANGS = Object.keys(I18N);
 
-  /* ---------- Dil ---------- */
+  // Allowed values per option; anything else (bad config, stale storage) falls back to the default.
+  const CHOICES = {
+    format: ['text', 'json', 'xml'],
+    whitespace: ['none', 'trim', 'all'],
+    inline: ['word', 'char', 'off'],
+    view: ['split', 'unified'],
+    lang: LANGS,
+  };
+  const BOOLS = ['ignoreCase', 'turkishCase', 'ignoreBlank', 'hide'];
+  const isValid = (k, v) =>
+    CHOICES[k] ? CHOICES[k].includes(v) :
+    BOOLS.includes(k) ? typeof v === 'boolean' :
+    k === 'context' ? Number.isInteger(v) && v >= 0 : false;
+
+  // First browser language the UI supports, else English.
+  function detectLang() {
+    for (const l of navigator.languages || [navigator.language]) {
+      const base = String(l || '').toLowerCase().split('-')[0];
+      if (LANGS.includes(base)) return base;
+    }
+    return LANGS.includes('en') ? 'en' : LANGS[0];
+  }
+
+  const defaults = {
+    lang: detectLang(), format: 'text', whitespace: 'none', ignoreCase: false, turkishCase: false,
+    ignoreBlank: false, inline: 'word', view: 'split', hide: false, context: 5,
+  };
+  for (const k in defaults) if (isValid(k, CFG[k])) defaults[k] = CFG[k];
+
+  const contextOptions = (Array.isArray(CFG.contextOptions) ? CFG.contextOptions : [0, 3, 5, 10, 20])
+    .filter(n => isValid('context', n));
+  if (!contextOptions.includes(defaults.context)) contextOptions.push(defaults.context);
+  contextOptions.sort((a, b) => a - b);
+
+  // Only options the visitor actually changed are stored, so config/browser defaults keep applying to the rest.
+  let saved = {};
+  try {
+    const raw = JSON.parse(localStorage.getItem(PREF_KEY) || '{}');
+    for (const k in raw) if (k in defaults && isValid(k, raw[k])) saved[k] = raw[k];
+  } catch (_) { /* storage may be unavailable */ }
+  if (!contextOptions.includes(saved.context)) delete saved.context;
+  const prefs = { ...defaults, ...saved };
+
+  function setPref(key, value) {
+    prefs[key] = value;
+    saved[key] = value;
+    try { localStorage.setItem(PREF_KEY, JSON.stringify(saved)); } catch (_) {}
+  }
+
+  /* ---------- Language ---------- */
+  // title/tagline/footer can be overridden in config.js, as a string or one string per language.
+  function fromConfig(key) {
+    const v = CFG[key];
+    if (typeof v === 'string') return v || null;
+    if (v && typeof v === 'object') return v[prefs.lang] || null;
+    return null;
+  }
+
   function t(key, vars) {
-    if ((key === 'title' || key === 'tagline' || key === 'footer') && CFG[key]) return CFG[key];
-    const dict = I18N[prefs.lang] || I18N.tr;
-    let s = dict[key] ?? I18N.tr[key] ?? key;
+    let s = fromConfig(key) ?? I18N[prefs.lang][key] ?? I18N.en[key] ?? key;
     if (vars) for (const k in vars) s = s.replace('{' + k + '}', vars[k]);
     return s;
   }
-  const fmt = (n) => n.toLocaleString(prefs.lang === 'tr' ? 'tr-TR' : 'en-US');
+  const fmt = (n) => n.toLocaleString(prefs.lang);
 
   function applyLang() {
     document.documentElement.lang = prefs.lang;
@@ -33,32 +80,39 @@
     $$('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
     $$('[data-i18n-ph]').forEach(el => { el.placeholder = t(el.dataset.i18nPh); });
     $$('[data-i18n-title]').forEach(el => { el.title = t(el.dataset.i18nTitle); });
+    $$('[data-i18n-label]').forEach(el => { el.setAttribute('aria-label', t(el.dataset.i18nLabel)); });
     $$('[data-lang]').forEach(b => b.classList.toggle('active', b.dataset.lang === prefs.lang));
     updateCounts();
     if (state.result) render();
   }
 
-  /* ---------- Elemanlar ---------- */
+  /* ---------- Elements ---------- */
   const leftEl = $('#leftText'), rightEl = $('#rightText');
   const resultEl = $('#result'), wrapEl = $('#diffWrap');
   const optFormat = $('#optFormat');
   const optWs = $('#optWhitespace'), optCase = $('#optCase'), optTurkish = $('#optTurkish'), optBlank = $('#optBlank');
   const optInline = $('#optInline'), optHide = $('#optHide'), optContext = $('#optContext');
 
+  // Controls built from config / available languages.
+  optContext.innerHTML = contextOptions.map(n => `<option value="${n}">${n}</option>`).join('');
+  $('#langSeg').innerHTML = LANGS.map(l => `<button type="button" data-lang="${l}">${l.toUpperCase()}</button>`).join('');
+  if (LANGS.length < 2) $('#langSeg').hidden = true;
+
   const state = {
-    result: null,       // worker'dan gelen sonuç
-    expanded: new Set(), // açılmış gizli blokların başlangıç indeksleri
-    blockStarts: [],    // her değişiklik bloğunun ilk satır indeksi
-    current: -1,        // seçili blok
-    stale: false,
-    reqId: 0,
+    result: null,         // result from the worker
+    reqId: 0,             // id of the latest request; older responses are dropped
+    reqFormat: 'text',    // format of the latest request
+    ran: false,           // the user has compared at least once
+    expanded: new Set(),  // start indexes of hidden blocks the user expanded
+    blockStarts: [],      // first row index of each change block
+    current: -1,          // selected block
   };
 
   /* ---------- Worker ---------- */
   const worker = new Worker('worker.js?v=__V__');
   worker.onmessage = (e) => {
     const { id, result, error } = e.data;
-    if (id !== state.reqId) return; // eski istek
+    if (id !== state.reqId) return; // stale response
     if (error) {
       wrapEl.innerHTML = `<div class="msg">${esc(t('error', { msg: error }))}</div>`;
       return;
@@ -78,7 +132,19 @@
       turkishCase: prefs.turkishCase,
       ignoreBlank: prefs.ignoreBlank,
       inline: prefs.inline,
+      limits: CFG.limits,
     };
+  }
+
+  function showMessage(html, scroll) {
+    state.reqId++; // invalidate any pending response
+    state.result = null;
+    state.blockStarts = [];
+    $('#stats').innerHTML = '';
+    setStale(false);
+    wrapEl.innerHTML = html;
+    updateNav();
+    if (scroll) resultEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   function runCompare(scroll) {
@@ -86,30 +152,20 @@
     resultEl.hidden = false;
     state.ran = true;
     if (left === '' && right === '') {
-      state.result = null;
-      $('#stats').innerHTML = '';
-      wrapEl.innerHTML = `<div class="msg">${esc(t('empty'))}</div>`;
-      updateNav();
+      showMessage(`<div class="msg">${esc(t('empty'))}</div>`, false);
       return;
     }
     const format = prefs.format;
     if (format !== 'text') {
-      const fmtName = format.toUpperCase();
       let side = 'left';
       try {
         left = Formatter.normalize(left, format);
         side = 'right';
         right = Formatter.normalize(right, format);
       } catch (err) {
-        state.reqId++; // bekleyen bir sonucu geçersiz kıl
-        state.result = null;
-        $('#stats').innerHTML = '';
-        setStale(false);
         const pos = err.line ? t('formatPos', { line: err.line, col: err.col }) : '';
-        const sideName = t(side === 'left' ? 'left' : 'right');
-        wrapEl.innerHTML = `<div class="msg error">${esc(t('formatError', { side: prefs.lang === 'tr' ? sideName : sideName.toLowerCase(), fmt: fmtName, pos }))}</div>`;
-        updateNav();
-        if (scroll) resultEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        const msg = t('formatError', { side: t(side === 'left' ? 'sideLeft' : 'sideRight'), fmt: format.toUpperCase(), pos });
+        showMessage(`<div class="msg error">${esc(msg)}</div>`, scroll);
         return;
       }
     }
@@ -120,7 +176,7 @@
     if (scroll) resultEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
-  /* ---------- Görüntüleme ---------- */
+  /* ---------- Rendering ---------- */
   function esc(s) {
     return s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   }
@@ -135,7 +191,7 @@
 
   const isChange = (r) => r.type === 'mod' || r.type === 'del' || r.type === 'ins';
 
-  // Görünür öğeler listesi: { row: i } veya { gap: [start, end) }
+  // Visible items: a row index, or { gap: [start, end) } for a collapsed run.
   function buildItems(rows) {
     const items = [];
     if (!prefs.hide) {
@@ -159,7 +215,7 @@
       if (keep[i]) { items.push(i); i++; continue; }
       let j = i;
       while (j < n && !keep[j]) j++;
-      // Tek bir satırı gizlemek yerine göstermek daha okunur.
+      // Showing a single line reads better than hiding it behind a gap.
       if (j - i < 2 || state.expanded.has(i)) for (let k = i; k < j; k++) items.push(k);
       else items.push({ gap: [i, j] });
       i = j;
@@ -251,7 +307,7 @@
     if (state.current >= 0) markCurrent(false);
   }
 
-  /* ---------- Değişiklikler arası gezinme ---------- */
+  /* ---------- Change navigation ---------- */
   function updateNav() {
     const n = state.blockStarts.length;
     $('#prevBtn').disabled = n === 0;
@@ -285,7 +341,7 @@
     markCurrent(true);
   }
 
-  /* ---------- Yardımcı arayüz ---------- */
+  /* ---------- UI helpers ---------- */
   function countLines(s) {
     if (s === '') return 0;
     let n = 1;
@@ -299,7 +355,6 @@
   }
 
   function setStale(v) {
-    state.stale = v;
     $('#staleNote').hidden = !v;
   }
 
@@ -319,8 +374,8 @@
     $$('[data-view]').forEach(b => b.classList.toggle('active', b.dataset.view === prefs.view));
   }
 
-  // İçerik tamamen değiştiğinde imleci ve görünümü metnin başına al
-  // (uzun son satır yüzünden kutunun sağa kaymasını önler).
+  // When the content is replaced entirely, move the caret and the view to the start
+  // (otherwise a long last line leaves the box scrolled to the right).
   function caretToStart(el) {
     el.setSelectionRange(0, 0);
     el.scrollTop = 0;
@@ -338,7 +393,7 @@
     fr.readAsText(file);
   }
 
-  /* ---------- Olaylar ---------- */
+  /* ---------- Events ---------- */
   $('#compareBtn').addEventListener('click', () => runCompare(true));
 
   $('#swapBtn').addEventListener('click', () => {
@@ -382,10 +437,9 @@
     el.focus();
   }));
 
-  // Karşılaştırma seçenekleri: sonuç varsa otomatik yeniden hesapla.
+  // Comparison options: recompute if a comparison has been run.
   function onCompareOpt(key, value) {
-    prefs[key] = value;
-    savePrefs();
+    setPref(key, value);
     syncControls();
     if (state.ran) runCompare(false);
   }
@@ -396,10 +450,9 @@
   optBlank.addEventListener('change', () => onCompareOpt('ignoreBlank', optBlank.checked));
   optInline.addEventListener('change', () => onCompareOpt('inline', optInline.value));
 
-  // Görünüm seçenekleri: yalnızca yeniden çiz.
+  // View options: redraw only.
   function onViewOpt(key, value) {
-    prefs[key] = value;
-    savePrefs();
+    setPref(key, value);
     syncControls();
     render();
   }
@@ -412,7 +465,7 @@
     if (g) { state.expanded.add(Number(g.dataset.gap)); render(); }
   });
 
-  // Yan yana görünümde seçimi tek sütunla sınırla.
+  // In the split view, keep a text selection within one column.
   wrapEl.addEventListener('mousedown', (e) => {
     const table = e.target.closest('table.split');
     if (!table) return;
@@ -431,8 +484,7 @@
   });
 
   $$('[data-lang]').forEach(b => b.addEventListener('click', () => {
-    prefs.lang = b.dataset.lang;
-    savePrefs();
+    setPref('lang', b.dataset.lang);
     applyLang();
   }));
 
@@ -442,10 +494,10 @@
       ? root.dataset.theme === 'dark'
       : matchMedia('(prefers-color-scheme: dark)').matches;
     root.dataset.theme = isDark ? 'light' : 'dark';
-    try { localStorage.setItem('dc.theme', root.dataset.theme); } catch (_) {}
+    try { localStorage.setItem(THEME_KEY, root.dataset.theme); } catch (_) {}
   });
 
-  /* ---------- Başlangıç ---------- */
+  /* ---------- Startup ---------- */
   syncControls();
   applyLang();
 })();

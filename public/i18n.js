@@ -1,4 +1,5 @@
 'use strict';
+// UI strings. To add a language, add an entry here; it shows up in the language switcher automatically.
 window.I18N = {
   tr: {
     title: 'DUKA Diff',
@@ -18,6 +19,8 @@ window.I18N = {
     fmtNote: '{fmt} biçiminde',
     fmtNoteHint: 'Metinler {fmt} olarak standart biçime çevrildi; satır numaraları biçimlendirilmiş metne aittir.',
     formatError: '{side} metin geçerli {fmt} değil{pos}.',
+    sideLeft: 'Orijinal',
+    sideRight: 'Değiştirilmiş',
     formatPos: ' (satır {line}, sütun {col} civarı)',
     optWhitespace: 'Boşluklar',
     wsNone: 'Dikkate al',
@@ -35,7 +38,6 @@ window.I18N = {
     viewUnified: 'Tek sütun',
     hideUnchanged: 'Değişmeyenleri gizle',
     context: 'Bağlam',
-    contextLines: '{n} satır',
     prev: 'Önceki değişiklik (Alt+↑)',
     next: 'Sonraki değişiklik (Alt+↓)',
     statRemoved: '{n} silinen',
@@ -49,6 +51,8 @@ window.I18N = {
     error: 'Hata: {msg}',
     empty: 'Karşılaştırmak için iki metni de girin.',
     theme: 'Tema değiştir',
+    language: 'Dil',
+    view: 'Görünüm',
     fileError: 'Dosya okunamadı.',
     shortcutHint: 'Ctrl+Enter ile karşılaştır',
     footer: 'Metinler saklanmaz · Çerez yok · Analitik yok',
@@ -71,6 +75,8 @@ window.I18N = {
     fmtNote: 'as {fmt}',
     fmtNoteHint: 'Both texts were converted to canonical {fmt}; line numbers refer to the formatted text.',
     formatError: 'The {side} text is not valid {fmt}{pos}.',
+    sideLeft: 'original',
+    sideRight: 'changed',
     formatPos: ' (around line {line}, column {col})',
     optWhitespace: 'Whitespace',
     wsNone: 'Respect',
@@ -88,7 +94,6 @@ window.I18N = {
     viewUnified: 'Unified',
     hideUnchanged: 'Hide unchanged',
     context: 'Context',
-    contextLines: '{n} lines',
     prev: 'Previous change (Alt+↑)',
     next: 'Next change (Alt+↓)',
     statRemoved: '{n} removed',
@@ -102,14 +107,18 @@ window.I18N = {
     error: 'Error: {msg}',
     empty: 'Enter both texts to compare.',
     theme: 'Toggle theme',
+    language: 'Language',
+    view: 'View',
     fileError: 'Could not read the file.',
     shortcutHint: 'Ctrl+Enter to compare',
     footer: 'Text is never stored · No cookies · No analytics',
   },
 };
 
-// Tema, sayfa çizilmeden önce uygulanır (yanıp sönmeyi önlemek için).
-try {
-  const th = localStorage.getItem('dc.theme') || (window.APP_CONFIG || {}).theme;
+// Apply the theme before the first paint to avoid a flash (this file is loaded in <head>).
+(function () {
+  let th = null;
+  try { th = localStorage.getItem('dc.theme'); } catch (_) { /* storage may be unavailable */ }
+  th = th || (window.APP_CONFIG || {}).theme;
   if (th === 'light' || th === 'dark') document.documentElement.dataset.theme = th;
-} catch (_) { /* depolama kapalı olabilir */ }
+})();

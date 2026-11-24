@@ -1,15 +1,15 @@
-# Bağımlılıklar / araçlar
+# Dependencies / tooling
 node_modules/
 
-# Editör ve sistem dosyaları
+# Editor and OS files
 .vscode/
 .idea/
 *.swp
 .DS_Store
 Thumbs.db
 
-# Yayın çıktısı
+# Build output
 _site/
 
-# Claude Code yerel ayarları
+# Claude Code local settings
 .claude/settings.local.json

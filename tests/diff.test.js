@@ -30,7 +30,7 @@ function apply(a, b, ops) {
   return { ra, rb, eq };
 }
 
-test('diffSeq: rastgele dizilerde doğru ve minimal', () => {
+test('diffSeq: correct and minimal on random sequences', () => {
   let seed = 42;
   const rnd = () => (seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
   for (let t = 0; t < 3000; t++) {
@@ -41,13 +41,13 @@ test('diffSeq: rastgele dizilerde doğru ve minimal', () => {
     const { ra, rb, eq } = apply(a, b, ops);
     assert.deepStrictEqual(ra, a);
     assert.deepStrictEqual(rb, b);
-    assert.strictEqual(eq, lcsLen(a, b), `minimal değil: ${a} | ${b}`);
+    assert.strictEqual(eq, lcsLen(a, b), `not minimal: ${a} | ${b}`);
   }
 });
 
 const base = { whitespace: 'none', ignoreCase: false, ignoreBlank: false, inline: 'word' };
 
-test('compare: temel ekleme/silme/değişiklik', () => {
+test('compare: basic insert/delete/modify', () => {
   const r = D.compare('a\nb\nc\nd', 'a\nB\nc\ne\nf', base);
   assert.deepStrictEqual(r.rows.map(x => x.type), ['equal', 'mod', 'equal', 'mod', 'ins']);
   assert.strictEqual(r.stats.added, 3);
@@ -55,13 +55,13 @@ test('compare: temel ekleme/silme/değişiklik', () => {
   assert.strictEqual(r.stats.blocks, 2);
 });
 
-test('compare: büyük/küçük harf ve Türkçe İ', () => {
+test('compare: ignore case, including Turkish İ', () => {
   const o = { ...base, ignoreCase: true };
   const r = D.compare('İSTANBUL\nFILE\nSATIR', 'istanbul\nfile\nsatır', o);
   assert.ok(r.rows.every(x => x.type === 'equal'));
 });
 
-test('compare: Türkçe harf kuralları', () => {
+test('compare: Turkish case rules', () => {
   const o = { ...base, ignoreCase: true, turkishCase: true };
   const same = (a, b) => D.compare(a, b, o).stats.blocks === 0;
   assert.ok(same('SATIR', 'satır'));
@@ -69,28 +69,28 @@ test('compare: Türkçe harf kuralları', () => {
   assert.ok(same('IĞDIR', 'ığdır'));
   assert.ok(!same('kır', 'kir'));
   assert.ok(!same('FILE', 'file'));
-  // Kapalıyken I/ı/İ/i birleşir
+  // When off, I/ı/İ/i are all the same
   assert.ok(D.compare('kır', 'kir', { ...base, ignoreCase: true }).stats.blocks === 0);
 });
 
-test('compare: boşluk seçenekleri', () => {
+test('compare: whitespace options', () => {
   assert.ok(D.compare('  a b  ', 'a b', { ...base, whitespace: 'trim' }).rows.every(x => x.type === 'equal'));
   assert.ok(D.compare('a  b', 'ab', { ...base, whitespace: 'all' }).rows.every(x => x.type === 'equal'));
   assert.strictEqual(D.compare('a  b', 'ab', { ...base, whitespace: 'trim' }).stats.blocks, 1);
 });
 
-test('compare: boş satırları yok say', () => {
+test('compare: ignore blank lines', () => {
   const r = D.compare('a\n\nb\n\n\nc', 'a\nb\nc\n', { ...base, ignoreBlank: true });
   assert.strictEqual(r.stats.blocks, 0);
   assert.strictEqual(r.rows.filter(x => x.type === 'skip').length, 3);
   assert.deepStrictEqual(r.rows.filter(x => x.aNo).map(x => x.aNo), [1, 2, 3, 4, 5, 6]);
 });
 
-test('compare: CRLF ve LF eşit', () => {
+test('compare: CRLF and LF are equal', () => {
   assert.strictEqual(D.compare('a\r\nb\r\n', 'a\nb', base).stats.blocks, 0);
 });
 
-test('compare: tüm satırlar her iki tarafta da tam bir kez görünür', () => {
+test('compare: every line appears exactly once on each side', () => {
   const left = Array.from({ length: 500 }, (_, i) => (i % 7 === 0 ? '' : 'L' + (i % 13))).join('\n');
   const right = Array.from({ length: 480 }, (_, i) => (i % 5 === 0 ? '' : 'L' + (i % 11))).join('\n');
   for (const ignoreBlank of [false, true]) {
@@ -102,13 +102,20 @@ test('compare: tüm satırlar her iki tarafta da tam bir kez görünür', () => 
   }
 });
 
-test('inlineDiff: kelime düzeyi', () => {
+test('inlineDiff: word level', () => {
   const s = D.inlineDiff('const x = 10;', 'const y = 10;', base);
   assert.deepStrictEqual(s.a.filter(p => p[1]).map(p => p[0]), ['x']);
   assert.deepStrictEqual(s.b.filter(p => p[1]).map(p => p[0]), ['y']);
 });
 
-test('performans: 10k satır', () => {
+test('inlineDiff: limits from opts are honored', () => {
+  const a = 'one two three four', b = 'one two THREE four';
+  assert.ok(D.inlineDiff(a, b, base));
+  assert.strictEqual(D.inlineDiff(a, b, { ...base, limits: { maxInlineTokens: 3 } }), null);
+  assert.strictEqual(D.inlineDiff(a, b, { ...base, limits: { inlineMinSimilarity: 0.99 } }), null);
+});
+
+test('performance: 10k lines', () => {
   const left = Array.from({ length: 10000 }, (_, i) => `satır ${i} içerik ${i * 7 % 101}`);
   const right = left.slice();
   for (let i = 0; i < 10000; i += 37) right[i] = right[i] + ' değişti';
@@ -116,26 +123,26 @@ test('performans: 10k satır', () => {
   const t0 = Date.now();
   const r = D.compare(left.join('\n'), right.join('\n'), base);
   const ms = Date.now() - t0;
-  assert.ok(ms < 3000, `çok yavaş: ${ms}ms`);
-  console.log(`  10k satır: ${ms}ms, ${r.stats.blocks} blok`);
+  assert.ok(ms < 3000, `too slow: ${ms}ms`);
+  console.log(`  10k lines: ${ms}ms, ${r.stats.blocks} blocks`);
   const t1 = Date.now();
   const rnd = Array.from({ length: 10000 }, (_, i) => 'x' + ((i * 7919) % 10007));
   D.compare(left.join('\n'), rnd.join('\n'), base);
-  console.log(`  10k tamamen farklı: ${Date.now() - t1}ms`);
+  console.log(`  10k completely different: ${Date.now() - t1}ms`);
 });
 
 const F = require('../public/format.js');
 
-test('formatJSON: anahtar sırası ve girinti yok sayılır', () => {
+test('formatJSON: key order and indentation are ignored', () => {
   const a = F.formatJSON('{"b": 1, "a": {"y": [1, 2], "x": "ç"}}');
   const b = F.formatJSON('{\n  "a": {"x": "\\u00e7", "y": [1,2]},\n  "b": 1\n}');
   assert.strictEqual(a, b);
   assert.strictEqual(a, '{\n  "a": {\n    "x": "ç",\n    "y": [\n      1,\n      2\n    ]\n  },\n  "b": 1\n}');
 });
 
-test('formatJSON: dizi sırası ve sayı yazımı korunur', () => {
+test('formatJSON: array order and number notation are kept', () => {
   assert.notStrictEqual(F.formatJSON('[1, 2]'), F.formatJSON('[2, 1]'));
-  // JSON.parse bu iki sayıyı aynı yapar; biz yapmamalıyız
+  // JSON.parse turns these two numbers into the same value; we must not
   assert.notStrictEqual(F.formatJSON('{"id": 12345678901234567890}'), F.formatJSON('{"id": 12345678901234567891}'));
   assert.strictEqual(F.formatJSON('{"n": 1.50}'), '{\n  "n": 1.50\n}');
   assert.strictEqual(F.formatJSON('  '), '');
@@ -143,7 +150,7 @@ test('formatJSON: dizi sırası ve sayı yazımı korunur', () => {
   assert.strictEqual(F.formatJSON('﻿[]'), '[]');
 });
 
-test('formatJSON: hatalı JSON konum bilgisiyle reddedilir', () => {
+test('formatJSON: invalid JSON is rejected with its position', () => {
   for (const bad of ['{"a": 1,}', '{"a" 1}', '[1, 2', '{"a": tru}', '{"a": "x\ny"}', '01', '{} x']) {
     assert.throws(() => F.formatJSON(bad), e => e.code === 'json' && e.line >= 1 && e.col >= 1, bad);
   }

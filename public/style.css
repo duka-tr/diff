@@ -15,6 +15,8 @@
   --gap-text: #4a5568;
   --ln: #8b939e;
   --current: #f5b301;
+  --rem-text: #d1242f;
+  --add-text: #1a7f37;
   --mono: ui-monospace, SFMono-Regular, "Cascadia Code", "JetBrains Mono", Menlo, Consolas, "Liberation Mono", monospace;
   --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   color-scheme: light;
@@ -36,6 +38,8 @@
     --gap-bg: #1b2230;
     --gap-text: #a7b1c2;
     --ln: #5f6874;
+    --rem-text: #ff7b7b;
+    --add-text: #56d47f;
     color-scheme: dark;
   }
 }
@@ -55,6 +59,8 @@
   --gap-bg: #1b2230;
   --gap-text: #a7b1c2;
   --ln: #5f6874;
+  --rem-text: #ff7b7b;
+  --add-text: #56d47f;
   color-scheme: dark;
 }
 
@@ -77,7 +83,7 @@ button, select, input, textarea { font: inherit; color: inherit; }
 
 .spacer { flex: 1; }
 
-/* ---------- Üst bar ---------- */
+/* ---------- Top bar ---------- */
 .topbar {
   display: flex;
   align-items: center;
@@ -90,7 +96,7 @@ button, select, input, textarea { font: inherit; color: inherit; }
 .tagline { margin: 0; color: var(--muted); font-size: 13px; flex: 1; min-width: 200px; }
 .top-actions { display: flex; align-items: center; gap: 8px; }
 
-/* ---------- Butonlar ---------- */
+/* ---------- Buttons ---------- */
 .btn, .icon-btn, .seg button {
   border: 1px solid var(--border);
   background: var(--surface);
@@ -123,7 +129,7 @@ button, select, input, textarea { font: inherit; color: inherit; }
 .seg button:last-child { border-radius: 0 7px 7px 0; }
 .seg button.active { background: var(--accent); border-color: var(--accent); color: var(--accent-text); position: relative; }
 
-/* ---------- Girdi alanları ---------- */
+/* ---------- Inputs ---------- */
 .inputs {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -163,7 +169,7 @@ button, select, input, textarea { font: inherit; color: inherit; }
   overflow: auto;
 }
 
-/* ---------- Seçenekler ---------- */
+/* ---------- Options ---------- */
 .options, .result-bar {
   display: flex;
   align-items: center;
@@ -182,7 +188,7 @@ button, select, input, textarea { font: inherit; color: inherit; }
 .opt.check { cursor: pointer; user-select: none; }
 .opt.check input { accent-color: var(--accent); width: 15px; height: 15px; margin: 0; }
 
-/* ---------- Sonuç ---------- */
+/* ---------- Result ---------- */
 .result { margin-top: 4px; }
 .result-bar {
   position: sticky;
@@ -193,18 +199,12 @@ button, select, input, textarea { font: inherit; color: inherit; }
   padding: 10px 2px;
 }
 .stats { display: flex; gap: 12px; font-size: 13.5px; font-weight: 600; flex-wrap: wrap; }
-.stats .rem { color: #d1242f; }
-.stats .add { color: #1a7f37; }
-.stats .blk, .stats .ms { color: var(--muted); font-weight: 500; }
+.stats .rem { color: var(--rem-text); }
+.stats .add { color: var(--add-text); }
+.stats .blk { color: var(--muted); font-weight: 500; }
 .stats .same { color: var(--muted); }
 .stats .fmt-note { color: var(--muted); font-weight: 400; font-size: 12.5px; }
-.diff-wrap .msg.error { color: #d1242f; }
-:root[data-theme="dark"] .stats .rem { color: #ff7b7b; }
-:root[data-theme="dark"] .stats .add { color: #56d47f; }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .stats .rem { color: #ff7b7b; }
-  :root:not([data-theme="light"]) .stats .add { color: #56d47f; }
-}
+.diff-wrap .msg.error { color: var(--rem-text); }
 .stale-note { color: var(--current); font-size: 13px; }
 .nav { display: inline-flex; align-items: center; gap: 6px; }
 .nav-pos { font-size: 13px; color: var(--muted); min-width: 48px; text-align: center; font-variant-numeric: tabular-nums; }
@@ -273,12 +273,12 @@ tr.gap button:hover { background: color-mix(in srgb, var(--accent) 10%, transpar
 
 tr.current td.ln { box-shadow: inset 3px 0 0 var(--current); }
 
-/* Yan yana görünümde yalnızca bir sütundan seçim yapılabilsin */
+/* In the split view, select text from one column only */
 table.diff.sel-a td.code.b, table.diff.sel-b td.code.a { user-select: none; }
 
 .footer { text-align: center; color: var(--muted); font-size: 12px; padding: 14px 16px 18px; }
 
-/* ---------- Dar ekran ---------- */
+/* ---------- Narrow screens ---------- */
 @media (max-width: 820px) {
   .inputs { grid-template-columns: 1fr; }
   .pane textarea { height: 24vh; }

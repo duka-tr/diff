@@ -1,15 +1,15 @@
 /*
- * Diff motoru — bağımlılıksız.
- * Myers O(ND) algoritması, doğrusal bellekli "middle snake" bölme yaklaşımıyla
- * (diff-match-patch'teki bisect mantığının tamsayı dizilerine uyarlanmış hali).
- * Hem Web Worker içinde (importScripts) hem Node'da (testler) çalışır.
+ * Diff engine, no dependencies.
+ * Myers' O(ND) algorithm with the linear-space "middle snake" bisection
+ * (the bisect logic of diff-match-patch, adapted to integer arrays).
+ * Runs both in a Web Worker (importScripts) and in Node (tests).
  */
 (function (root) {
   'use strict';
 
   const EQ = 0, DEL = 1, INS = 2;
 
-  // a, b: tamsayı dizileri. Dönüş: [op, adet, op, adet, ...] düz dizi.
+  // a, b: integer arrays. Returns a flat array: [op, count, op, count, ...].
   function diffSeq(a, b, deadline) {
     const out = [];
 
@@ -103,7 +103,7 @@
     return out;
   }
 
-  /* ---------- Metin yardımcıları ---------- */
+  /* ---------- Text helpers ---------- */
 
   function splitLines(text) {
     if (text === '') return [];
@@ -112,9 +112,9 @@
     return lines;
   }
 
-  // Büyük/küçük harf katlama.
-  // turkishCase açık: Türkçe kurallar (I↔ı, İ↔i) — "SATIR" = "satır", "kır" ≠ "kir", ama "FILE" ≠ "file".
-  // turkishCase kapalı: I/ı/İ/i aynı kabul edilir — hem Türkçe hem İngilizce metinde eşleşir, "kır" = "kir".
+  // Case folding.
+  // turkishCase on: Turkish rules (I↔ı, İ↔i): "SATIR" = "satır", "kır" ≠ "kir", but "FILE" ≠ "file".
+  // turkishCase off: I/ı/İ/i are all treated as the same, so Turkish and English text both match ("kır" = "kir").
   function fold(s, opts) {
     if (opts.turkishCase) return s.toLocaleLowerCase('tr');
     return s.toLowerCase().replace(/i̇/g, 'i').replace(/ı/g, 'i');
@@ -140,10 +140,12 @@
     };
   }
 
-  /* ---------- Satır içi (kelime / karakter) fark ---------- */
+  /* ---------- Inline (word / character) diff ---------- */
 
   const WORD_RE = /\s+|[\p{L}\p{N}_]+|[^\s\p{L}\p{N}_]/gu;
-  const MAX_INLINE_TOKENS = 5000;
+
+  // Defaults for opts.limits (overridable from config.js).
+  const LIMITS = { timeoutMs: 10000, inlineTimeoutMs: 150, maxInlineTokens: 5000, inlineMinSimilarity: 0.3 };
 
   function tokenize(s, mode) {
     return mode === 'char' ? Array.from(s) : (s.match(WORD_RE) || []);
@@ -154,16 +156,17 @@
     return opts.ignoreCase ? fold(t, opts) : t;
   }
 
-  // Dönüş: { a: [[metin, değişti], ...], b: [...] } veya null (vurgulamaya değmez)
+  // Returns { a: [[text, changed], ...], b: [...] }, or null when highlighting is not worth it.
   function inlineDiff(aText, bText, opts) {
+    const lim = { ...LIMITS, ...opts.limits };
     const ta = tokenize(aText, opts.inline);
     const tb = tokenize(bText, opts.inline);
-    if (ta.length > MAX_INLINE_TOKENS || tb.length > MAX_INLINE_TOKENS) return null;
+    if (ta.length > lim.maxInlineTokens || tb.length > lim.maxInlineTokens) return null;
 
     const intern = Interner();
     const sa = ta.map(t => intern(normToken(t, opts)));
     const sb = tb.map(t => intern(normToken(t, opts)));
-    const ops = diffSeq(sa, sb, Date.now() + 150);
+    const ops = diffSeq(sa, sb, Date.now() + lim.inlineTimeoutMs);
 
     const segA = [], segB = [];
     const add = (segs, text, changed) => {
@@ -189,22 +192,23 @@
       }
     }
 
-    // Satırlar birbirine çok az benziyorsa parça parça boyamak okunurluğu bozar.
+    // Painting lines that barely resemble each other piece by piece hurts readability.
     const longest = Math.max(aText.length, bText.length);
-    if (longest > 0 && same / longest < 0.3) return null;
+    if (longest > 0 && same / longest < lim.inlineMinSimilarity) return null;
     return { a: segA, b: segB };
   }
 
-  /* ---------- Ana karşılaştırma ---------- */
+  /* ---------- Main comparison ---------- */
 
   /*
-   * opts: { whitespace: 'none'|'trim'|'all', ignoreCase, turkishCase, ignoreBlank, inline: 'word'|'char'|'off' }
-   * Satır tipleri:
-   *   equal — iki tarafta aynı (yok sayılan farklar hariç)
-   *   mod   — değişmiş satır çifti (satır içi vurgu olabilir)
-   *   del   — yalnızca solda
-   *   ins   — yalnızca sağda
-   *   skip  — "boş satırları yok say" ile karşılaştırma dışı kalan boş satır
+   * opts: { whitespace: 'none'|'trim'|'all', ignoreCase, turkishCase, ignoreBlank, inline: 'word'|'char'|'off',
+   *         limits?: { timeoutMs, inlineTimeoutMs, maxInlineTokens, inlineMinSimilarity } }
+   * Row types:
+   *   equal  same on both sides (apart from ignored differences)
+   *   mod    changed line pair (may carry inline highlights)
+   *   del    left side only
+   *   ins    right side only
+   *   skip   blank line left out of the comparison by "ignore blank lines"
    */
   function compare(leftText, rightText, opts) {
     const A = splitLines(leftText);
@@ -221,13 +225,13 @@
       idxB.push(i); seqB.push(intern(normalizeLine(B[i], opts)));
     }
 
-    const ops = diffSeq(seqA, seqB, Date.now() + 10000);
+    const ops = diffSeq(seqA, seqB, Date.now() + { ...LIMITS, ...opts.limits }.timeoutMs);
     const rows = [];
-    let pa = 0, pb = 0; // ham satır imleçleri
-    let x = 0, y = 0;   // filtrelenmiş dizi imleçleri
+    let pa = 0, pb = 0; // cursors into the raw lines
+    let x = 0, y = 0;   // cursors into the filtered sequences
     let added = 0, removed = 0, blocks = 0;
 
-    // Atlanan boş satırları (varsa) sırayla döker.
+    // Emits the skipped blank lines (if any) in order.
     function flushSkips(toA, toB) {
       const sa = [], sb = [];
       while (pa < toA) sa.push(pa++);
@@ -257,7 +261,7 @@
         continue;
       }
 
-      // Ardışık DEL/INS koşularını tek bir değişiklik bloğunda topla.
+      // Merge consecutive DEL/INS runs into one change block.
       let nd = 0, ni = 0;
       while (k < ops.length && ops[k] !== EQ) {
         if (ops[k] === DEL) nd += ops[k + 1]; else ni += ops[k + 1];
@@ -271,7 +275,7 @@
       removed += nd;
       added += ni;
 
-      // Atlanan boş satırlar ham sıralarına göre araya girer.
+      // Skipped blank lines are interleaved by their raw position.
       const pairs = Math.min(nd, ni);
       for (let c = 0; c < pairs; c++) {
         flushSkips(dels[c], inss[c]);
@@ -299,11 +303,11 @@
 
     return {
       rows,
-      stats: { added, removed, blocks, leftLines: A.length, rightLines: B.length },
+      stats: { added, removed, blocks },
     };
   }
 
-  const api = { diffSeq, compare, splitLines, inlineDiff, EQ, DEL, INS };
+  const api = { diffSeq, compare, inlineDiff, EQ, DEL, INS };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.DiffEngine = api;
 })(typeof self !== 'undefined' ? self : this);

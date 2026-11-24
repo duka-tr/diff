@@ -1,16 +1,16 @@
 /*
- * Biçimsel karşılaştırma için normalleştirme.
- * Metin, anlamı korunarak standart bir biçime çevrilir; böylece yalnızca gerçek veri farkları görünür.
+ * Normalization for structural comparison.
+ * The text is converted to a canonical form without changing its meaning, so only real data differences show up.
  *
- * JSON: anahtarlar sıralanır, girinti 2 boşluk. Sayılar yazıldığı gibi korunur
- *       (JSON.parse büyük sayıları yuvarladığı için kendi ayrıştırıcımız var).
- * XML:  öznitelikler sıralanır, girinti 2 boşluk, yalnızca boşluktan oluşan metinler atılır.
- *       Element sırası XML'de anlamlı olduğundan korunur.
+ * JSON: keys are sorted, 2-space indent. Numbers are kept exactly as written
+ *       (JSON.parse rounds large numbers, hence the custom parser).
+ * XML:  attributes are sorted, 2-space indent, whitespace-only text nodes are dropped.
+ *       Element order is meaningful in XML, so it is kept.
  */
 (function (root) {
   'use strict';
 
-  // Hata: { code, line, col } — arayüz mesajı dile göre üretir.
+  // Error with { code, line, col }; the UI builds the localized message.
   function FormatError(code, src, pos) {
     const pre = src.slice(0, pos);
     const line = pre.split('\n').length;
@@ -38,7 +38,7 @@
     }
 
     function str() {
-      i++; // açılış tırnağı
+      i++; // opening quote
       let out = '', start = i;
       for (;;) {
         if (i >= n) fail();
@@ -138,7 +138,7 @@
     return printJSON(parseJSON(text), '');
   }
 
-  /* ---------- XML (tarayıcının DOMParser'ı ile) ---------- */
+  /* ---------- XML (via the browser's DOMParser) ---------- */
 
   const escText = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   const escAttr = (s) => escText(s).replace(/"/g, '&quot;');
@@ -148,7 +148,7 @@
     const doc = new DOMParser().parseFromString(text, 'application/xml');
     const perr = doc.getElementsByTagName('parsererror')[0];
     if (perr) {
-      // Tarayıcılar konumu mesajın içinde verir: "line 3 at column 5" / "Line Number 3, Column 5"
+      // Browsers put the position in the message: "line 3 at column 5" / "Line Number 3, Column 5"
       const m = /line(?: number)?\s*(\d+)[^\d]+(\d+)/i.exec(perr.textContent || '');
       const e = new Error('xml');
       e.code = 'xml';
@@ -193,7 +193,7 @@
     return text;
   }
 
-  const api = { normalize, formatJSON, formatXML, parseJSON };
+  const api = { normalize, formatJSON, formatXML };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Formatter = api;
 })(typeof self !== 'undefined' ? self : this);

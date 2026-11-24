@@ -1,0 +1,8 @@
+DUKA Diff
+Copyright 2026 duka.tr
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+The bisection step of the diff engine (public/diff.js) is adapted from
+diff-match-patch (https://github.com/google/diff-match-patch),
+Copyright 2018 The diff-match-patch Authors, licensed under the Apache License, Version 2.0.

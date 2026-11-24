@@ -1,12 +1,12 @@
 <!doctype html>
-<html lang="tr">
+<html lang="en">
 <head>
   <meta charset="utf-8">
-  <!-- Sayfa hiçbir dış kaynağa bağlanamaz; metinlerin dışarı sızması tarayıcı düzeyinde engellenir. -->
+  <!-- The page cannot connect anywhere: the browser itself blocks any attempt to send the texts out. -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; worker-src 'self'; connect-src 'none'; form-action 'none'; base-uri 'none'">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="referrer" content="no-referrer">
-  <meta name="description" content="Metinleri, JSON ve XML'i tarayıcıda karşılaştırın. Hiçbir şey sunucuya gönderilmez.">
+  <meta name="description" content="Compare text, JSON and XML right in your browser. Nothing is sent to a server.">
   <link rel="canonical" href="https://duka.tr/diff/">
   <title>DUKA Diff</title>
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
@@ -22,11 +22,8 @@
     </div>
     <p class="tagline" data-i18n="tagline"></p>
     <div class="top-actions">
-      <div class="seg" role="group" aria-label="Language">
-        <button type="button" data-lang="tr">TR</button>
-        <button type="button" data-lang="en">EN</button>
-      </div>
-      <button type="button" id="themeBtn" class="icon-btn" data-i18n-title="theme" aria-label="Theme">◐</button>
+      <div class="seg" id="langSeg" role="group" data-i18n-label="language" aria-label="Language"></div>
+      <button type="button" id="themeBtn" class="icon-btn" data-i18n-title="theme" data-i18n-label="theme" aria-label="Toggle theme">◐</button>
     </div>
   </header>
 
@@ -34,84 +31,78 @@
     <section class="inputs">
       <div class="pane" data-side="left">
         <div class="pane-head">
-          <span class="pane-title" data-i18n="left">Orijinal</span>
+          <span class="pane-title" data-i18n="left">Original</span>
           <span class="pane-count" id="leftCount"></span>
           <span class="spacer"></span>
-          <label class="btn small"><input type="file" hidden data-file="left"><span data-i18n="openFile">Dosya aç</span></label>
-          <button type="button" class="btn small ghost" data-clear="left" data-i18n="clear">Temizle</button>
+          <label class="btn small"><input type="file" hidden data-file="left"><span data-i18n="openFile">Open file</span></label>
+          <button type="button" class="btn small ghost" data-clear="left" data-i18n="clear">Clear</button>
         </div>
-        <textarea id="leftText" spellcheck="false" autocomplete="off" autocapitalize="off" wrap="off" data-i18n-ph="placeholderLeft"></textarea>
+        <textarea id="leftText" spellcheck="false" autocomplete="off" autocapitalize="off" wrap="off" data-i18n-ph="placeholderLeft" data-i18n-label="left" aria-label="Original"></textarea>
       </div>
       <div class="pane" data-side="right">
         <div class="pane-head">
-          <span class="pane-title" data-i18n="right">Değiştirilmiş</span>
+          <span class="pane-title" data-i18n="right">Changed</span>
           <span class="pane-count" id="rightCount"></span>
           <span class="spacer"></span>
-          <label class="btn small"><input type="file" hidden data-file="right"><span data-i18n="openFile">Dosya aç</span></label>
-          <button type="button" class="btn small ghost" data-clear="right" data-i18n="clear">Temizle</button>
+          <label class="btn small"><input type="file" hidden data-file="right"><span data-i18n="openFile">Open file</span></label>
+          <button type="button" class="btn small ghost" data-clear="right" data-i18n="clear">Clear</button>
         </div>
-        <textarea id="rightText" spellcheck="false" autocomplete="off" autocapitalize="off" wrap="off" data-i18n-ph="placeholderRight"></textarea>
+        <textarea id="rightText" spellcheck="false" autocomplete="off" autocapitalize="off" wrap="off" data-i18n-ph="placeholderRight" data-i18n-label="right" aria-label="Changed"></textarea>
       </div>
     </section>
 
     <section class="options">
       <label class="opt" data-i18n-title="optFormatHint">
-        <span data-i18n="optFormat">Biçim</span>
+        <span data-i18n="optFormat">Format</span>
         <select id="optFormat">
-          <option value="text" data-i18n="fmtText">Düz metin</option>
+          <option value="text" data-i18n="fmtText">Plain text</option>
           <option value="json">JSON</option>
           <option value="xml">XML</option>
         </select>
       </label>
       <label class="opt">
-        <span data-i18n="optWhitespace">Boşluklar</span>
+        <span data-i18n="optWhitespace">Whitespace</span>
         <select id="optWhitespace">
-          <option value="none" data-i18n="wsNone">Dikkate al</option>
-          <option value="trim" data-i18n="wsTrim">Baş/son boşlukları yok say</option>
-          <option value="all" data-i18n="wsAll">Tüm boşlukları yok say</option>
+          <option value="none" data-i18n="wsNone">Respect</option>
+          <option value="trim" data-i18n="wsTrim">Ignore leading/trailing</option>
+          <option value="all" data-i18n="wsAll">Ignore all</option>
         </select>
       </label>
-      <label class="opt check"><input type="checkbox" id="optCase"><span data-i18n="optCase">Büyük/küçük harfi yok say</span></label>
-      <label class="opt check" id="turkishWrap"><input type="checkbox" id="optTurkish"><span data-i18n="optTurkish" data-i18n-title="optTurkishHint">Türkçe harf kuralları</span></label>
-      <label class="opt check"><input type="checkbox" id="optBlank"><span data-i18n="optBlank">Boş satırları yok say</span></label>
+      <label class="opt check"><input type="checkbox" id="optCase"><span data-i18n="optCase">Ignore case</span></label>
+      <label class="opt check" id="turkishWrap"><input type="checkbox" id="optTurkish"><span data-i18n="optTurkish" data-i18n-title="optTurkishHint">Turkish case rules</span></label>
+      <label class="opt check"><input type="checkbox" id="optBlank"><span data-i18n="optBlank">Ignore blank lines</span></label>
       <label class="opt">
-        <span data-i18n="optInline">Satır içi fark</span>
+        <span data-i18n="optInline">Inline diff</span>
         <select id="optInline">
-          <option value="word" data-i18n="inlineWord">Kelime</option>
-          <option value="char" data-i18n="inlineChar">Karakter</option>
-          <option value="off" data-i18n="inlineOff">Kapalı</option>
+          <option value="word" data-i18n="inlineWord">Word</option>
+          <option value="char" data-i18n="inlineChar">Character</option>
+          <option value="off" data-i18n="inlineOff">Off</option>
         </select>
       </label>
       <div class="actions">
-        <button type="button" id="swapBtn" class="btn ghost">⇄ <span data-i18n="swap">Yer değiştir</span></button>
-        <button type="button" id="compareBtn" class="btn primary" data-i18n-title="shortcutHint"><span data-i18n="compare">Karşılaştır</span></button>
+        <button type="button" id="swapBtn" class="btn ghost">⇄ <span data-i18n="swap">Swap</span></button>
+        <button type="button" id="compareBtn" class="btn primary" data-i18n-title="shortcutHint"><span data-i18n="compare">Compare</span></button>
       </div>
     </section>
 
     <section class="result" id="result" hidden>
       <div class="result-bar">
-        <div class="stats" id="stats"></div>
+        <div class="stats" id="stats" aria-live="polite"></div>
         <span class="stale-note" id="staleNote" data-i18n="stale" hidden></span>
         <span class="spacer"></span>
-        <div class="seg" role="group">
-          <button type="button" data-view="split" data-i18n="viewSplit">Yan yana</button>
-          <button type="button" data-view="unified" data-i18n="viewUnified">Tek sütun</button>
+        <div class="seg" role="group" data-i18n-label="view" aria-label="View">
+          <button type="button" data-view="split" data-i18n="viewSplit">Side by side</button>
+          <button type="button" data-view="unified" data-i18n="viewUnified">Unified</button>
         </div>
-        <label class="opt check"><input type="checkbox" id="optHide"><span data-i18n="hideUnchanged">Değişmeyenleri gizle</span></label>
+        <label class="opt check"><input type="checkbox" id="optHide"><span data-i18n="hideUnchanged">Hide unchanged</span></label>
         <label class="opt" id="contextWrap">
-          <span data-i18n="context">Bağlam</span>
-          <select id="optContext">
-            <option value="0">0</option>
-            <option value="3">3</option>
-            <option value="5">5</option>
-            <option value="10">10</option>
-            <option value="20">20</option>
-          </select>
+          <span data-i18n="context">Context</span>
+          <select id="optContext"></select>
         </label>
         <div class="nav">
-          <button type="button" id="prevBtn" class="icon-btn" data-i18n-title="prev">↑</button>
+          <button type="button" id="prevBtn" class="icon-btn" data-i18n-title="prev" data-i18n-label="prev" aria-label="Previous change">↑</button>
           <span id="navPos" class="nav-pos"></span>
-          <button type="button" id="nextBtn" class="icon-btn" data-i18n-title="next">↓</button>
+          <button type="button" id="nextBtn" class="icon-btn" data-i18n-title="next" data-i18n-label="next" aria-label="Next change">↓</button>
         </div>
       </div>
       <div class="diff-wrap" id="diffWrap"></div>
