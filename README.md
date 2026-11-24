@@ -158,8 +158,8 @@ Translations are welcome as pull requests.
 
 ## Contributing
 
-Pull requests are welcome, including translations. Please keep the project dependency-free and run the tests
-before submitting.
+Pull requests are welcome, including translations. See [CONTRIBUTING.md](CONTRIBUTING.md) for the ground rules.
+Please report security issues privately as described in [SECURITY.md](SECURITY.md).
 
 ## License
 
