@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="public/favicon.svg" alt="DUKA Diff logo" width="96" height="96">
+  <img src="public/favicon.svg" alt="Diff logo" width="96" height="96">
 </p>
 
-<h1 align="center">DUKA Diff</h1>
+<h1 align="center">Diff</h1>
 
 **Private text, JSON and XML diff that runs entirely in your browser.**
 
@@ -68,7 +68,8 @@ option on the page, their own choice wins.
 
 | Field | Default | Description |
 |---|---|---|
-| `title` | `DUKA Diff` | Page and tab title |
+| `title` | `Diff` | Heading shown on the page |
+| `pageTitle` | `Diff — duka.tr` | Browser tab title |
 | `tagline` | per language | Text next to the title. A string, or `{ en: '…', tr: '…' }` |
 | `footer` | per language | Footer text. A string, or `{ en: '…', tr: '…' }` |
 | `lang` | browser language | UI language: `en` or `tr`. Falls back to `en` |
@@ -162,7 +163,7 @@ before submitting.
 
 ## License
 
-DUKA Diff is licensed under the [Apache License 2.0](LICENSE). Copyright 2026 duka.tr.
+Diff is licensed under the [Apache License 2.0](LICENSE). Copyright 2026 duka.tr.
 
 The diff engine implements Eugene W. Myers, *"An O(ND) Difference Algorithm and Its Variations"* (1986). Its
 bisection step is adapted from [diff-match-patch](https://github.com/google/diff-match-patch) (Apache License 2.0).

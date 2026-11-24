@@ -59,7 +59,7 @@
   }
 
   /* ---------- Language ---------- */
-  // title/tagline/footer can be overridden in config.js, as a string or one string per language.
+  // title/pageTitle/tagline/footer can be overridden in config.js, as a string or one string per language.
   function fromConfig(key) {
     const v = CFG[key];
     if (typeof v === 'string') return v || null;
@@ -76,7 +76,7 @@
 
   function applyLang() {
     document.documentElement.lang = prefs.lang;
-    document.title = t('title');
+    document.title = t('pageTitle');
     $$('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
     $$('[data-i18n-ph]').forEach(el => { el.placeholder = t(el.dataset.i18nPh); });
     $$('[data-i18n-title]').forEach(el => { el.title = t(el.dataset.i18nTitle); });

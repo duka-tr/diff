@@ -2,7 +2,8 @@
 // UI strings. To add a language, add an entry here; it shows up in the language switcher automatically.
 window.I18N = {
   tr: {
-    title: 'DUKA Diff',
+    title: 'Diff',
+    pageTitle: 'Diff — duka.tr',
     tagline: 'Metinler tarayıcınızdan çıkmaz — hiçbir şey sunucuya gönderilmez veya kaydedilmez.',
     left: 'Orijinal',
     right: 'Değiştirilmiş',
@@ -58,7 +59,8 @@ window.I18N = {
     footer: 'Metinler saklanmaz · Çerez yok · Analitik yok',
   },
   en: {
-    title: 'DUKA Diff',
+    title: 'Diff',
+    pageTitle: 'Diff — duka.tr',
     tagline: 'Your text never leaves the browser — nothing is sent to or stored on the server.',
     left: 'Original',
     right: 'Changed',

@@ -6,7 +6,8 @@
  */
 window.APP_CONFIG = {
   /* ---------- Branding ---------- */
-  // title: 'DUKA Diff',                 // Page and tab title
+  // title: 'Diff',                      // Heading shown on the page
+  // pageTitle: 'Diff — duka.tr',         // Browser tab title
   // tagline: { en: '...', tr: '...' },  // Text next to the title (a string, or one string per language)
   // footer: { en: '...', tr: '...' },   // Footer text (a string, or one string per language)
 
