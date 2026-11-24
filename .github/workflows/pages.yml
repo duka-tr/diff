@@ -8,8 +8,6 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
   group: pages-${{ github.ref }}
@@ -25,13 +23,15 @@ jobs:
           node-version: 22
       - run: node --test tests/diff.test.js
 
-  deploy:
+  # Upload and deploy run in separate jobs: deploying right after uploading in the same job
+  # intermittently fails to find the artifact (actions/deploy-pages#451).
+  build:
     needs: test
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+    permissions:
+      contents: read
+      pages: write   # configure-pages reads the Pages site settings
     steps:
       - uses: actions/checkout@v7
       - name: Prepare site
@@ -44,5 +44,16 @@ jobs:
       - uses: actions/upload-pages-artifact@v5
         with:
           path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
       - id: deployment
         uses: actions/deploy-pages@v5
